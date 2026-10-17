@@ -65,6 +65,7 @@ header{position:sticky;top:0;z-index:20;padding:calc(env(safe-area-inset-top) + 
 .wt{flex:1;text-align:center;cursor:pointer;user-select:none;min-width:0}
 .wt .brand{font-size:11px;font-weight:800;letter-spacing:.24em;color:var(--gold);text-transform:uppercase}
 .wt .wk{font-weight:900;font-style:italic;font-size:30px;line-height:1;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wt .wk.cur{color:var(--gold);text-shadow:0 0 18px rgba(255,190,40,.45)}
 .wt .dates{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
 
 /* ---------- List ---------- */
@@ -474,6 +475,7 @@ function render() {
   const w = WEEKS[viewIdx];
   const games = (data && data.weeks[w.key]) || [];
   $wk.textContent = w.title;
+  $wk.classList.toggle('cur', !!data && viewIdx === currentWeekIdx());
   $dates.textContent = rangeText(games);
   $prev.disabled = viewIdx <= 0;
   $next.disabled = viewIdx >= WEEKS.length - 1;
