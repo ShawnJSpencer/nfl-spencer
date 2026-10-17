@@ -7,8 +7,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Spencer NFL">
+<meta name="apple-mobile-web-app-title" content="Spencer Fam">
 <title>NFL · Spencer Family Edition</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,800;1,700;1,800;1,900&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
@@ -117,9 +119,13 @@ main{max-width:720px;margin:0 auto;padding:6px 14px calc(60px + env(safe-area-in
 .logo b{color:#111;font-weight:900;font-style:italic;font-size:20px}
 .city{margin-top:10px;font-weight:800;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.85);
   text-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.nick{font-weight:900;font-style:italic;text-transform:uppercase;line-height:.95;font-size:clamp(25px,7.6vw,36px);
-  letter-spacing:.01em;transform:skewX(-6deg);white-space:nowrap;display:block;max-width:100%;padding-right:.08em;
-  text-shadow:2px 2px 0 var(--tc2,#000), 4px 4px 0 rgba(0,0,0,.45)}
+.nick{font-weight:900;font-style:italic;text-transform:uppercase;line-height:.95;font-size:clamp(25px,7.6vw,36px);color:#fff;
+  letter-spacing:.045em;transform:skewX(-6deg);white-space:nowrap;display:block;max-width:100%;padding:0 .12em 4px 0;
+  /* crisp team-dark outline, then a pop of the accent color, then a soft drop */
+  text-shadow:
+    -1px -1px 0 var(--nd), 1px -1px 0 var(--nd), -1px 1px 0 var(--nd), 1px 1px 0 var(--nd),
+    0 -1.5px 0 var(--nd), 0 1.5px 0 var(--nd), -1.5px 0 0 var(--nd), 1.5px 0 0 var(--nd),
+    3px 3px 0 var(--na), 4.5px 4.5px 0 rgba(0,0,0,.5)}
 .nick.long{font-size:clamp(21px,6.2vw,30px)}
 .rec{margin-top:8px;padding:2px 10px;border-radius:999px;background:rgba(0,0,0,.4);font-weight:800;font-size:15px;letter-spacing:.08em;min-width:52px}
 .score{margin-top:6px;font-family:'Oswald',sans-serif;font-weight:700;font-size:46px;line-height:1;text-shadow:0 3px 0 rgba(0,0,0,.35);min-width:64px}
@@ -356,10 +362,16 @@ function lum(h) {
   const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
   return .2126 * f(n >> 16 & 255) + .7152 * f(n >> 8 & 255) + .0722 * f(n & 255);
 }
+function shade(h, k) {   // mix a color toward black (k = how much of the original to keep)
+  const n = parseInt(h.slice(1), 16);
+  return '#' + [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => Math.round(v * k).toString(16).padStart(2, '0')).join('');
+}
 function teamColors(t) {
   let m = hx(t.color, '#3a3d45'), a = hx(t.alt, '#ffffff');
   if (lum(m) > .55 && lum(a) < lum(m)) [m, a] = [a, m];   // keep the big field dark enough for white text
-  return { m, a };
+  const d = shade(m, .38);                                  // outline: a deep version of the team color
+  const acc = lum(a) > .7 || Math.abs(lum(a) - lum(m)) < .04 ? 'rgba(0,0,0,.55)' : a;  // skip near-white / same-as-field accents
+  return { m, a, d, acc };
 }
 
 /* ================= Formatting ================= */
@@ -411,7 +423,7 @@ function sideHTML(t, g, reveal, winSide) {
     score = g.state === 'pre' ? '–' : (t.score || '0');
     scoreCls = winSide === false ? 'lose' : '';
   }
-  return `<div class="side" style="--tc2:${c.a}">
+  return `<div class="side" style="--tc2:${c.a};--nd:${c.d};--na:${c.acc}">
     <div class="logo">${logo}</div>
     <div class="city">${esc(t.city || '\u00a0')}</div>
     <div class="nick ${nick.length > 9 ? 'long' : ''}">${esc(nick)}</div>
