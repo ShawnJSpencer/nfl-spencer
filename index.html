@@ -23,6 +23,8 @@
   --gold:#ffcf5a; --gold2:#ffb000;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* no double-tap zoom anywhere (pinch-zoom still works) */
+html,body,button,label,a,.wt{touch-action:manipulation}
 html,body{margin:0;background:var(--bg);color:var(--text)}
 body{
   font-family:'Barlow Condensed',system-ui,sans-serif;
@@ -693,6 +695,16 @@ $list.addEventListener('click', e => {
 });
 $prev.addEventListener('click', () => go(viewIdx - 1));
 $next.addEventListener('click', () => go(viewIdx + 1));
+// On touch screens, fire the arrows on finger-lift and swallow the follow-up click,
+// so rapid taps flip weeks instantly and never get read as a double-tap zoom.
+for (const [btn, d] of [[$prev, -1], [$next, 1]]) {
+  btn.addEventListener('touchend', e => {
+    if (e.cancelable) e.preventDefault();
+    const t = e.changedTouches[0], r = btn.getBoundingClientRect();
+    if (t && t.clientX >= r.left - 10 && t.clientX <= r.right + 10 && t.clientY >= r.top - 10 && t.clientY <= r.bottom + 10) go(viewIdx + d);
+  }, { passive: false });
+}
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 $('#wt').addEventListener('click', () => go(currentWeekIdx()));
 document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') go(viewIdx - 1);
