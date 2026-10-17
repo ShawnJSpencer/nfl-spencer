@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b1c20">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spencer NFL">
+<title>NFL · Spencer Family Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,800;1,700;1,800;1,900&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+<style>
+@property --ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+:root{
+  --bg:#1b1c20; --bg2:#23252b; --panel:#2b2e35; --line:rgba(255,255,255,.1);
+  --text:#f4f5f7; --muted:#9ea3ae;
+  --gold:#ffcf5a; --gold2:#ffb000;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{
+  font-family:'Barlow Condensed',system-ui,sans-serif;
+  min-height:100vh;
+  background:
+    radial-gradient(900px 500px at 15% -120px, rgba(213,10,10,.10), transparent 70%),
+    radial-gradient(900px 500px at 85% -120px, rgba(1,51,105,.18), transparent 70%),
+    var(--bg);
+  background-attachment:fixed;
+  overscroll-behavior-y:none;
+}
+button{font-family:inherit;cursor:pointer}
+
+/* ---------- Splash ---------- */
+#splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:var(--bg);
+  transition:opacity .8s ease, visibility .8s ease}
+#splash.hide{opacity:0;visibility:hidden}
+.sp{text-align:center;padding:0 24px;animation:pop .9s cubic-bezier(.2,1.5,.4,1) both}
+.sp-nfl{font-weight:900;font-style:italic;font-size:clamp(84px,26vw,170px);line-height:.85;letter-spacing:.01em;
+  background:linear-gradient(100deg,#d50a0a 10%,#ffffff 50%,#2a6fd6 90%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,.6));padding-right:.08em}
+.sp-bar{height:6px;width:0;margin:10px auto 14px;border-radius:3px;background:linear-gradient(90deg,#d50a0a,#fff,#2a6fd6);animation:bar 1.1s .25s ease forwards}
+.sp-sub{font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.14em;font-size:clamp(18px,5.4vw,30px);color:var(--gold);
+  opacity:0;animation:fadeup .6s .55s ease forwards}
+@keyframes pop{from{transform:scale(.6) skewX(-8deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes bar{to{width:min(320px,70vw)}}
+@keyframes fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---------- Header ---------- */
+header{position:sticky;top:0;z-index:20;padding:calc(env(safe-area-inset-top) + 8px) 12px 10px;
+  background:rgba(27,28,32,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:10px;max-width:720px;margin:0 auto}
+.arrow{flex:none;width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,.16);background:var(--panel);color:#fff;
+  display:grid;place-items:center;transition:transform .12s, opacity .2s}
+.arrow:active{transform:scale(.9)}
+.arrow:disabled{opacity:.25;pointer-events:none}
+.arrow svg{width:22px;height:22px}
+.wt{flex:1;text-align:center;cursor:pointer;user-select:none;min-width:0}
+.wt .brand{font-size:11px;font-weight:800;letter-spacing:.24em;color:var(--gold);text-transform:uppercase}
+.wt .wk{font-weight:900;font-style:italic;font-size:30px;line-height:1;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wt .dates{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+
+/* ---------- List ---------- */
+main{max-width:720px;margin:0 auto;padding:6px 14px calc(60px + env(safe-area-inset-bottom))}
+.day{display:flex;align-items:center;gap:10px;margin:26px 4px 14px;font-weight:800;font-style:italic;font-size:15px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted)}
+.day::after{content:"";flex:1;height:1px;background:var(--line)}
+.empty,.loading{text-align:center;color:var(--muted);padding:70px 20px;font-size:20px;font-weight:700;font-style:italic;letter-spacing:.06em;text-transform:uppercase}
+.loading .ball{width:46px;height:28px;margin:0 auto 16px;border-radius:50%;background:#8a4b22;position:relative;animation:spinball 1s linear infinite}
+.loading .ball::after{content:"";position:absolute;left:12px;right:12px;top:12px;height:3px;background:#fff;border-radius:2px}
+@keyframes spinball{to{transform:rotate(360deg)}}
+.retry{margin-top:14px;padding:10px 20px;border-radius:999px;border:0;background:var(--gold);color:#1b1c20;font-weight:800;font-size:17px}
+
+/* ---------- Game card ---------- */
+.game{position:relative;margin-bottom:26px}
+.cardwrap{position:relative}
+.glow{position:absolute;inset:-16px -12px -20px;border-radius:32px;z-index:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
+.game.active .glow{opacity:1}
+.glow::before{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:conic-gradient(from var(--ang),
+    rgba(255,207,90,0) 0deg, rgba(255,214,110,.95) 50deg, rgba(255,176,0,.35) 110deg,
+    rgba(255,240,190,.9) 190deg, rgba(255,176,0,.25) 260deg, rgba(255,207,90,0) 330deg);
+  filter:blur(22px);animation:spin 8s linear infinite}
+.glow::after{content:"";position:absolute;inset:14px;border-radius:inherit;background:rgba(255,196,64,.45);filter:blur(26px);
+  animation:breathe 4s ease-in-out infinite}
+@keyframes spin{to{--ang:360deg}}
+@keyframes breathe{0%,100%{opacity:.55}50%{opacity:1}}
+
+.card{position:relative;z-index:1;border-radius:20px;overflow:hidden;border:3px solid #fff;
+  box-shadow:0 12px 30px rgba(0,0,0,.5);
+  background:
+    repeating-linear-gradient(104deg, rgba(255,255,255,.035) 0 2px, transparent 2px 10px),
+    linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,.35) 100%),
+    linear-gradient(104deg,
+      var(--ca) 0 calc(50% - 13px), var(--ca2) calc(50% - 13px) calc(50% - 6px),
+      #fff calc(50% - 6px) calc(50% + 6px),
+      var(--ch2) calc(50% + 6px) calc(50% + 13px), var(--ch) calc(50% + 13px) 100%);
+}
+.card::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(120deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 32%)}
+.meta{position:relative;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 14px;
+  background:rgba(0,0,0,.42);font-weight:800;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+.meta .kick{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.slot{background:#fff;color:#111;border-radius:6px;padding:1px 7px;font-style:italic;font-weight:900;font-size:13px;letter-spacing:.06em}
+.meta .net{color:rgba(255,255,255,.75);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.matchup{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:16px 6px 14px}
+.side{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0;padding:0 8px}
+.side:first-child{padding-right:26px}
+.side:last-child{padding-left:26px}
+.logo{width:66px;height:66px;border-radius:50%;background:#fff;display:grid;place-items:center;
+  box-shadow:0 4px 0 rgba(0,0,0,.25),0 8px 18px rgba(0,0,0,.35);border:3px solid var(--tc2,#fff);overflow:hidden}
+.logo img{width:50px;height:50px;object-fit:contain}
+.logo b{color:#111;font-weight:900;font-style:italic;font-size:20px}
+.city{margin-top:10px;font-weight:800;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.85);
+  text-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.nick{font-weight:900;font-style:italic;text-transform:uppercase;line-height:.95;font-size:clamp(25px,7.6vw,36px);
+  letter-spacing:.01em;transform:skewX(-6deg);white-space:nowrap;display:block;max-width:100%;padding-right:.08em;
+  text-shadow:2px 2px 0 var(--tc2,#000), 4px 4px 0 rgba(0,0,0,.45)}
+.nick.long{font-size:clamp(21px,6.2vw,30px)}
+.rec{margin-top:8px;padding:2px 10px;border-radius:999px;background:rgba(0,0,0,.4);font-weight:800;font-size:15px;letter-spacing:.08em;min-width:52px}
+.score{margin-top:6px;font-family:'Oswald',sans-serif;font-weight:700;font-size:46px;line-height:1;text-shadow:0 3px 0 rgba(0,0,0,.35);min-width:64px}
+.score.lose{opacity:.55}
+.blur{filter:blur(7px);user-select:none;-webkit-user-select:none;pointer-events:none}
+.at{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:38px;height:38px;border-radius:50%;
+  background:#15161a;border:3px solid #fff;display:grid;place-items:center;font-weight:900;font-style:italic;font-size:17px;
+  box-shadow:0 4px 12px rgba(0,0,0,.45)}
+.reveal .rec,.reveal .score{animation:unblur .7s ease}
+@keyframes unblur{from{filter:blur(7px);opacity:.4}to{filter:none;opacity:1}}
+
+.watch{position:relative;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(0,0,0,.45);cursor:pointer;
+  font-weight:800;font-style:italic;font-size:16px;letter-spacing:.1em;text-transform:uppercase;user-select:none}
+.watch input{position:absolute;opacity:0;pointer-events:none}
+.box{flex:none;width:26px;height:26px;border-radius:8px;border:2.5px solid #fff;display:grid;place-items:center;transition:background .2s,border-color .2s}
+.box::after{content:"";width:7px;height:13px;border:solid #fff;border-width:0 3px 3px 0;transform:translateY(-2px) rotate(45deg) scale(.4);opacity:0;transition:all .2s}
+.watch input:checked + .box{background:#22c55e;border-color:#22c55e}
+.watch input:checked + .box::after{opacity:1;transform:translateY(-2px) rotate(45deg) scale(1)}
+.watch .final{margin-left:auto;font-style:normal;font-size:14px;letter-spacing:.12em;color:rgba(255,255,255,.75)}
+
+/* ---------- Bookmark tag + panel ---------- */
+.bm-tag{display:inline-flex;align-items:center;gap:7px;margin:10px 0 0 10px;padding:6px 13px;border-radius:999px;
+  border:1.5px dashed rgba(255,255,255,.3);background:rgba(255,255,255,.03);color:#c9ccd3;
+  font-weight:800;font-style:italic;font-size:14px;letter-spacing:.1em;position:relative;z-index:2}
+.bm-tag svg{width:16px;height:16px;flex:none}
+.bm-tag em{font-style:normal;font-size:11px;opacity:.7;margin-left:4px;letter-spacing:.14em}
+.bm-tag.set{border:1.5px solid #ffe08a;color:#1b1c20;background:linear-gradient(90deg,#ffd76a,#ffb300);box-shadow:0 4px 14px rgba(255,180,0,.25)}
+.game.open .bm-tag{background:#3a3d45;color:#fff;border-style:solid;border-color:rgba(255,255,255,.25);box-shadow:none}
+
+.drop{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s cubic-bezier(.2,.8,.2,1)}
+.game.open .drop{grid-template-rows:1fr}
+.drop-in{overflow:hidden;min-height:0}
+.panel{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;margin:10px 0 2px;padding:16px 14px 14px;border-radius:18px;background:linear-gradient(180deg,#2c2f36,#212328);
+  border:1px solid rgba(255,255,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 24px rgba(0,0,0,.35)}
+.periods{display:grid;grid-template-columns:1fr 1fr 2fr 1fr 1fr 1.15fr;gap:6px}
+.periods button{height:44px;border-radius:11px;border:1.5px solid rgba(255,255,255,.14);background:#17181c;color:#e9eaee;
+  font-weight:900;font-style:italic;font-size:19px;letter-spacing:.04em;transition:all .15s}
+.periods button[data-p="H"]{font-size:15px;letter-spacing:.06em}
+.periods button.on{background:var(--gold);border-color:var(--gold);color:#1b1c20;transform:translateY(-1px);box-shadow:0 4px 12px rgba(255,190,40,.3)}
+
+.clock{display:flex;justify-content:center;align-items:center;gap:10px;margin:18px 0 6px;transition:opacity .3s, filter .3s}
+.clock.off{opacity:.22;filter:grayscale(1);pointer-events:none}
+.grp{display:flex;gap:5px;padding:7px;border-radius:14px;background:#0f1012;touch-action:none;cursor:ns-resize;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.06)}
+.colon{display:flex;flex-direction:column;gap:16px}
+.colon i{width:10px;height:10px;border-radius:50%;background:#e8e9ec;box-shadow:0 0 6px rgba(255,255,255,.25)}
+
+.flap{position:relative;width:56px;height:84px;perspective:320px;font-family:'Oswald',sans-serif;font-weight:700;font-size:70px;color:#f2f2f2;user-select:none;-webkit-user-select:none}
+.flap .half{position:absolute;left:0;right:0;height:50%;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flap .top{top:0;border-radius:8px 8px 0 0;background:linear-gradient(180deg,#3a3d44,#2d2f35)}
+.flap .bot{bottom:0;border-radius:0 0 8px 8px;background:linear-gradient(180deg,#25272c,#31333a)}
+.flap .half span{position:absolute;left:0;right:0;height:200%;display:flex;align-items:center;justify-content:center;line-height:1}
+.flap .top span{top:0}
+.flap .bot span{bottom:0}
+.flap::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:#0b0c0e;z-index:9}
+.flap .ft{z-index:4;transform-origin:50% 100%;animation:flipTop var(--fd,110ms) ease-in forwards}
+.flap .fb{z-index:5;transform-origin:50% 0;transform:rotateX(90deg);animation:flipBot var(--fd,110ms) ease-out var(--fd,110ms) forwards}
+.flap .ft::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.35))}
+@keyframes flipTop{to{transform:rotateX(-90deg)}}
+@keyframes flipBot{to{transform:rotateX(0deg)}}
+.hint{text-align:center;color:var(--muted);font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px}
+.acts{display:flex;gap:10px}
+.acts button{height:50px;border-radius:13px;border:0;font-weight:900;font-style:italic;letter-spacing:.12em}
+.acts .clr{flex:1;background:#17181c;color:#c9ccd3;border:1.5px solid rgba(255,255,255,.14);font-size:16px}
+.acts .setb{flex:2;background:linear-gradient(90deg,#ffd76a,#ffb000);color:#1b1c20;font-size:24px;box-shadow:0 6px 16px rgba(255,176,0,.3)}
+.acts button:active{transform:scale(.97)}
+
+.foot{text-align:center;color:#6b707b;font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-top:30px}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="sp">
+    <div class="sp-nfl">NFL</div>
+    <div class="sp-bar"></div>
+    <div class="sp-sub">Spencer Family Edition</div>
+  </div>
+</div>
+
+<header>
+  <div class="nav">
+    <button class="arrow" id="prev" aria-label="Previous week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="wt" id="wt" title="Tap to jump to this week">
+      <div class="brand">Spencer Family Edition</div>
+      <div class="wk" id="wk">&nbsp;</div>
+      <div class="dates" id="dates">&nbsp;</div>
+    </div>
+    <button class="arrow" id="next" aria-label="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+</header>
+
+<main>
+  <div id="list"></div>
+  <div class="foot">Scores &amp; records stay hidden until you mark a game watched</div>
+</main>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= Config ================= */
+const SEASON = 2026;
+const API = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
+const WEEKS = [];
+for (let i = 1; i <= 18; i++) WEEKS.push({ key: '2-' + i, type: 2, week: i, title: 'Week ' + i });
+WEEKS.push(
+  { key: '3-1', type: 3, week: 1, title: 'Wild Card' },
+  { key: '3-2', type: 3, week: 2, title: 'Divisional' },
+  { key: '3-3', type: 3, week: 3, title: 'Conference' },
+  { key: '3-5', type: 3, week: 5, title: 'Super Bowl' }
+);
+const PERIODS = [
+  { v: '1', l: '1' }, { v: '2', l: '2' }, { v: 'H', l: 'HALFTIME' },
+  { v: '3', l: '3' }, { v: '4', l: '4' }, { v: 'OT', l: 'OT' }
+];
+const CLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>';
+
+/* ================= Storage ================= */
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const DATA_KEY = 'sfe.data.' + SEASON;
+const store = { watched: LS.get('sfe.watched', {}), bm: LS.get('sfe.bookmarks', {}) };
+const saveWatched = () => LS.set('sfe.watched', store.watched);
+const saveBm = () => LS.set('sfe.bookmarks', store.bm);
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+
+let data = LS.get(DATA_KEY, null);   // { weeks: {key: [games]}, ts }
+let byId = {}, teamGames = {};
+let viewIdx = 0, openId = null, pending = false, scrollTarget = null;
+
+/* ================= DOM ================= */
+const $ = s => document.querySelector(s);
+const $list = $('#list'), $wk = $('#wk'), $dates = $('#dates');
+const $prev = $('#prev'), $next = $('#next');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const frag = html => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ================= Data ================= */
+function parseTeam(c) {
+  const t = (c && c.team) || {};
+  return {
+    id: t.id || '', abbr: t.abbreviation || 'TBD',
+    city: t.location || '', nick: t.name || t.shortDisplayName || t.displayName || 'TBD',
+    color: t.color || '', alt: t.alternateColor || '',
+    logo: t.logo || (t.logos && t.logos[0] && t.logos[0].href) || '',
+    score: c && c.score != null ? String(c.score) : ''
+  };
+}
+function parseEvent(ev) {
+  const c = (ev.competitions && ev.competitions[0]) || {};
+  const comps = c.competitors || [];
+  const home = comps.find(x => x.homeAway === 'home') || comps[1];
+  const away = comps.find(x => x.homeAway === 'away') || comps[0];
+  const st = (c.status || ev.status || {}).type || {};
+  const nets = [];
+  (c.broadcasts || []).forEach(b => (b.names || []).forEach(n => nets.includes(n) || nets.push(n)));
+  return {
+    id: String(ev.id), date: ev.date,
+    timeValid: c.timeValid !== false,
+    state: st.state || 'pre', completed: !!st.completed, detail: st.shortDetail || '',
+    network: nets.join(' / '), neutral: !!c.neutralSite,
+    home: parseTeam(home), away: parseTeam(away)
+  };
+}
+async function fetchWeek(w) {
+  const r = await fetch(`${API}?dates=${SEASON}&seasontype=${w.type}&week=${w.week}`, { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  return (j.events || [])
+    .filter(ev => !ev.season || ((!ev.season.year || ev.season.year === SEASON) && (!ev.season.type || ev.season.type === w.type)))
+    .map(parseEvent)
+    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date) || a.id.localeCompare(b.id));
+}
+async function refresh() {
+  const res = await Promise.allSettled(WEEKS.map(fetchWeek));
+  const weeks = Object.assign({}, data && data.weeks);
+  let ok = 0;
+  res.forEach((r, i) => { if (r.status === 'fulfilled') { weeks[WEEKS[i].key] = r.value; ok++; } });
+  if (!ok) throw new Error('offline');
+  data = { weeks, ts: Date.now() };
+  LS.set(DATA_KEY, data);
+  index();
+}
+function index() {
+  byId = {}; teamGames = {};
+  if (!data) return;
+  for (const w of WEEKS) for (const g of (data.weeks[w.key] || [])) {
+    g.wk = w.key; byId[g.id] = g;
+    if (w.type === 2) for (const t of [g.home, g.away]) if (t.id) (teamGames[t.id] = teamGames[t.id] || []).push(g);
+  }
+}
+// W-L(-T) computed from regular-season results up to and including this game
+function record(tid, g) {
+  const list = teamGames[tid]; if (!list) return '0-0';
+  const t0 = Date.parse(g.date); let w = 0, l = 0, t = 0;
+  for (const x of list) {
+    if (!x.completed || Date.parse(x.date) > t0) continue;
+    const me = x.home.id === tid ? x.home : x.away, op = x.home.id === tid ? x.away : x.home;
+    const a = +me.score, b = +op.score;
+    if (a > b) w++; else if (a < b) l++; else t++;
+  }
+  return t ? `${w}-${l}-${t}` : `${w}-${l}`;
+}
+function currentWeekIdx() {
+  const now = Date.now(); let lastWith = 0;
+  for (let i = 0; i < WEEKS.length; i++) {
+    const gs = data && data.weeks[WEEKS[i].key];
+    if (!gs || !gs.length) continue;
+    lastWith = i;
+    const last = Math.max(...gs.map(g => Date.parse(g.date)));
+    if (now < last + 14 * 3600e3) return i;
+  }
+  return lastWith;
+}
+// The game you're "in the middle of": most recently bookmarked, not yet marked watched
+function activeId() {
+  let best = null, bt = -1;
+  for (const [id, b] of Object.entries(store.bm)) {
+    if (store.watched[id] || (data && !byId[id])) continue;
+    if (b.ts > bt) { bt = b.ts; best = id; }
+  }
+  return best;
+}
+
+/* ================= Colors ================= */
+const hx = (c, f) => /^[0-9a-f]{6}$/i.test(c || '') ? '#' + c : f;
+function lum(h) {
+  const n = parseInt(h.slice(1), 16);
+  const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+  return .2126 * f(n >> 16 & 255) + .7152 * f(n >> 8 & 255) + .0722 * f(n & 255);
+}
+function teamColors(t) {
+  let m = hx(t.color, '#3a3d45'), a = hx(t.alt, '#ffffff');
+  if (lum(m) > .55 && lum(a) < lum(m)) [m, a] = [a, m];   // keep the big field dark enough for white text
+  return { m, a };
+}
+
+/* ================= Formatting ================= */
+const fmtTime = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+const fmtDay = new Intl.DateTimeFormat([], { weekday: 'long', month: 'short', day: 'numeric' });
+const fmtShort = new Intl.DateTimeFormat([], { month: 'short', day: 'numeric' });
+const fmtET = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', hourCycle: 'h23' });
+function slotTag(g) {
+  const p = Object.fromEntries(fmtET.formatToParts(new Date(g.date)).map(x => [x.type, x.value]));
+  const wd = p.weekday, hr = +p.hour;
+  if (wd === 'Thu') return 'TNF';
+  if (wd === 'Mon') return 'MNF';
+  if (wd === 'Sun' && hr >= 19) return 'SNF';
+  if (wd === 'Sat') return 'SAT';
+  if (wd === 'Fri') return 'FRI';
+  if (wd === 'Wed') return 'WED';
+  if (wd === 'Tue') return 'TUE';
+  return '';
+}
+function dayLabel(d) {
+  const parts = fmtDay.formatToParts(d);
+  const wd = parts.find(p => p.type === 'weekday').value;
+  return `${wd} · ${fmtShort.format(d)}`;
+}
+function rangeText(games) {
+  if (!games.length) return SEASON + ' season';
+  const a = new Date(games[0].date), b = new Date(games[games.length - 1].date);
+  const A = fmtShort.format(a), B = fmtShort.format(b);
+  return A === B ? A : `${A} – ${B}`;
+}
+function bmText(b) {
+  if (b.p === 'H') return 'HALFTIME';
+  return `${b.p === 'OT' ? 'OT' : 'Q' + b.p} · ${b.m}:${pad(b.s)}`;
+}
+function tagInner(id, aid) {
+  const b = store.bm[id];
+  if (!b) return `${CLOCK_SVG}<span>BOOKMARK TIME</span>`;
+  return `${CLOCK_SVG}<span>${id === aid ? 'NOW WATCHING · ' : ''}${bmText(b)}</span><em>UPDATE</em>`;
+}
+
+/* ================= Render ================= */
+function sideHTML(t, g, reveal, winSide) {
+  const c = teamColors(t);
+  const nick = t.nick || 'TBD';
+  const logo = t.logo ? `<img src="${esc(t.logo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('b'),{textContent:'${esc(t.abbr)}'}))">` : `<b>${esc(t.abbr)}</b>`;
+  let rec = 'X-X', score = '00', scoreCls = 'blur';
+  if (reveal) {
+    rec = t.id ? record(t.id, g) : '—';
+    score = g.state === 'pre' ? '–' : (t.score || '0');
+    scoreCls = winSide === false ? 'lose' : '';
+  }
+  return `<div class="side" style="--tc2:${c.a}">
+    <div class="logo">${logo}</div>
+    <div class="city">${esc(t.city || '\u00a0')}</div>
+    <div class="nick ${nick.length > 9 ? 'long' : ''}">${esc(nick)}</div>
+    <div class="rec ${reveal ? '' : 'blur'}" aria-hidden="${!reveal}">${esc(rec)}</div>
+    <div class="score ${scoreCls}" aria-hidden="${!reveal}">${esc(score)}</div>
+  </div>`;
+}
+function cardHTML(g, aid, extra = '') {
+  const watched = !!store.watched[g.id];
+  const A = g.away, H = g.home, ca = teamColors(A), ch = teamColors(H);
+  let awayWin = null, homeWin = null;
+  if (watched && g.completed) {
+    const a = +A.score, h = +H.score;
+    if (a !== h) { awayWin = a > h; homeWin = h > a; }
+  }
+  const slot = slotTag(g);
+  const time = g.timeValid ? fmtTime.format(new Date(g.date)) : 'TIME TBD';
+  const bm = store.bm[g.id];
+  return `<article class="game ${g.id === aid ? 'active' : ''} ${extra}" data-id="${esc(g.id)}">
+    <div class="cardwrap">
+      <div class="glow"></div>
+      <div class="card" style="--ca:${ca.m};--ca2:${ca.a};--ch:${ch.m};--ch2:${ch.a}">
+        <div class="meta">
+          <span class="kick">${slot ? `<b class="slot">${slot}</b>` : ''}${esc(time)}</span>
+          <span class="net">${esc(g.network)}</span>
+        </div>
+        <div class="matchup">
+          ${sideHTML(A, g, watched, awayWin)}
+          ${sideHTML(H, g, watched, homeWin)}
+        </div>
+        <div class="at">${g.neutral ? 'VS' : '@'}</div>
+        <label class="watch">
+          <input type="checkbox" ${watched ? 'checked' : ''}>
+          <span class="box"></span>
+          <span>${watched ? 'Watched' : 'We watched it'}</span>
+          ${watched && g.state !== 'pre' ? `<span class="final">${esc(g.detail)}</span>` : ''}
+        </label>
+      </div>
+    </div>
+    <button class="bm-tag ${bm ? 'set' : ''}">${tagInner(g.id, aid)}</button>
+    <div class="drop"><div class="drop-in"></div></div>
+  </article>`;
+}
+function render() {
+  if (openId) { pending = true; return; }
+  const w = WEEKS[viewIdx];
+  const games = (data && data.weeks[w.key]) || [];
+  $wk.textContent = w.title;
+  $dates.textContent = rangeText(games);
+  $prev.disabled = viewIdx <= 0;
+  $next.disabled = viewIdx >= WEEKS.length - 1;
+  if (!data) { $list.innerHTML = `<div class="loading"><div class="ball"></div>Loading schedule…</div>`; return; }
+  if (!games.length) {
+    $list.innerHTML = `<div class="empty">${w.type === 3 ? 'Matchups not set yet' : 'No games found for this week'}</div>`;
+    return;
+  }
+  const aid = activeId();
+  let html = '', lastDay = '';
+  for (const g of games) {
+    const d = new Date(g.date), dk = d.toDateString();
+    if (dk !== lastDay) { lastDay = dk; html += `<h3 class="day">${esc(dayLabel(d))}</h3>`; }
+    html += cardHTML(g, aid);
+  }
+  $list.innerHTML = html;
+  fitNames($list);
+}
+// Shrink long team names so they never run into the @ badge
+function fitNames(root) {
+  root.querySelectorAll('.nick').forEach(el => {
+    el.style.fontSize = '';
+    let fs = parseFloat(getComputedStyle(el).fontSize);
+    while (el.scrollWidth > el.clientWidth + 1 && fs > 14) { fs -= 1; el.style.fontSize = fs + 'px'; }
+  });
+}
+function refreshActive() {
+  const aid = activeId();
+  $list.querySelectorAll('.game').forEach(art => {
+    const id = art.dataset.id;
+    art.classList.toggle('active', id === aid);
+    const tag = art.querySelector('.bm-tag');
+    tag.innerHTML = tagInner(id, aid);
+    tag.classList.toggle('set', !!store.bm[id]);
+  });
+}
+function go(idx) {
+  if (idx < 0 || idx >= WEEKS.length) return;
+  if (openId) closeDrop();
+  viewIdx = idx; pending = false;
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+/* ================= Split-flap clock ================= */
+function makeFlap() {
+  const el = document.createElement('div');
+  el.className = 'flap';
+  el.innerHTML = '<div class="half top"><span></span></div><div class="half bot"><span></span></div>';
+  const ts = el.querySelector('.top span'), bs = el.querySelector('.bot span');
+  let val = null;
+  return {
+    el,
+    set(v, anim, fd = 110) {
+      if (v === val) return;
+      const old = val; val = v;
+      ts.textContent = v;
+      if (!anim || old == null) { bs.textContent = v; return; }
+      const ft = document.createElement('div'); ft.className = 'half top ft'; ft.innerHTML = `<span>${old}</span>`;
+      const fb = document.createElement('div'); fb.className = 'half bot fb'; fb.innerHTML = `<span>${v}</span>`;
+      ft.style.setProperty('--fd', fd + 'ms'); fb.style.setProperty('--fd', fd + 'ms');
+      ft.addEventListener('animationend', () => ft.remove());
+      fb.addEventListener('animationend', () => { fb.remove(); bs.textContent = val; });
+      el.append(ft, fb);
+      const ov = el.querySelectorAll('.ft,.fb');
+      if (ov.length > 8) { ov[0].remove(); ov[1].remove(); bs.textContent = val; }
+    }
+  };
+}
+function makeClock(gm, gs, st, maxM, clockEl) {
+  const f = [makeFlap(), makeFlap(), makeFlap(), makeFlap()];
+  gm.append(f[0].el, f[1].el); gs.append(f[2].el, f[3].el);
+  function draw(anim, fd) {
+    const m = pad(st.m), s = pad(st.s);
+    [m[0], m[1], s[0], s[1]].forEach((d, i) => f[i].set(d, anim, fd));
+  }
+  function step(g, dir, fd) {
+    const max = maxM();
+    if (g === 'm') {
+      const nm = Math.max(0, Math.min(max, st.m + dir));
+      if (nm === st.m) return false;
+      st.m = nm; if (st.m === max) st.s = 0;
+    } else {
+      let ns = st.s + dir;
+      if (ns > 59) ns = 0; if (ns < 0) ns = 59;
+      if (st.m >= max && ns !== 0) { if (max === 0) return false; st.m = max - 1; }
+      st.s = ns;
+    }
+    draw(true, fd);
+    try { navigator.vibrate && navigator.vibrate(3); } catch {}
+    return true;
+  }
+  const STEP = 16;
+  const dur = v => Math.round(Math.max(45, Math.min(150, 150 - v * 110)));
+  function attach(el, g) {
+    let y0 = null, lastY = 0, lastT = 0, acc = 0, vel = 0, moved = false, timer = null, wacc = 0;
+    el.addEventListener('pointerdown', e => {
+      if (clockEl.classList.contains('off')) return;
+      clearTimeout(timer);
+      try { el.setPointerCapture(e.pointerId); } catch {}
+      y0 = lastY = e.clientY; lastT = e.timeStamp; acc = 0; vel = 0; moved = false;
+      e.preventDefault();
+    });
+    el.addEventListener('pointermove', e => {
+      if (y0 == null) return;
+      const dy = e.clientY - lastY, dt = Math.max(1, e.timeStamp - lastT);
+      vel = .6 * vel + .4 * (dy / dt);
+      lastY = e.clientY; lastT = e.timeStamp; acc += dy;
+      if (Math.abs(e.clientY - y0) > 6) moved = true;
+      while (Math.abs(acc) >= STEP) {
+        const dir = acc < 0 ? 1 : -1;        // drag up = higher number
+        acc += dir * STEP;
+        step(g, dir, dur(Math.abs(vel)));
+      }
+    });
+    const end = (e, cancel) => {
+      if (y0 == null) return;
+      if (!moved && !cancel) {
+        const r = el.getBoundingClientRect();
+        step(g, e.clientY < r.top + r.height / 2 ? 1 : -1, 150);   // tap top +1, bottom −1
+      } else if (!cancel && Math.abs(vel) > .45 && e.timeStamp - lastT < 80) {
+        const dir = vel < 0 ? 1 : -1;
+        let rate = Math.min(Math.abs(vel) * 1000 / STEP * .7, 38);  // flips per second
+        const tick = () => {
+          if (rate < 5) return;
+          if (!step(g, dir, Math.max(45, Math.min(140, 700 / rate)))) return;
+          rate *= .88;
+          timer = setTimeout(tick, 1000 / rate);
+        };
+        tick();
+      }
+      y0 = null;
+    };
+    el.addEventListener('pointerup', e => end(e, false));
+    el.addEventListener('pointercancel', e => end(e, true));
+    el.addEventListener('wheel', e => {
+      e.preventDefault();
+      wacc += e.deltaY;
+      while (Math.abs(wacc) >= 30) { const dir = wacc < 0 ? 1 : -1; wacc += dir * 30; step(g, dir, 80); }
+    }, { passive: false });
+  }
+  attach(gm, 'm'); attach(gs, 's');
+  draw(false);
+  return { draw };
+}
+
+/* ================= Bookmark panel ================= */
+function openDrop(art) {
+  if (openId) closeDrop();
+  const id = art.dataset.id, g = byId[id];
+  if (!g) return;
+  openId = id;
+  const had = store.bm[id];
+  const st = { p: had ? had.p : '1', m: had ? had.m : 15, s: had ? had.s : 0 };
+  const host = art.querySelector('.drop-in');
+  host.innerHTML = `<div class="panel">
+    <div class="periods">${PERIODS.map(p => `<button data-p="${p.v}" class="${p.v === st.p ? 'on' : ''}">${p.l}</button>`).join('')}</div>
+    <div class="clock ${st.p === 'H' ? 'off' : ''}">
+      <div class="grp" data-g="m"></div>
+      <div class="colon"><i></i><i></i></div>
+      <div class="grp" data-g="s"></div>
+    </div>
+    <div class="hint">Swipe ↑↓ on the numbers</div>
+    <div class="acts"><button class="clr">${had ? 'CLEAR' : 'CANCEL'}</button><button class="setb">SET</button></div>
+  </div>`;
+  const panel = host.firstElementChild, clockEl = panel.querySelector('.clock');
+  const maxM = () => st.p === 'OT' ? (g.wk && g.wk.startsWith('2-') ? 10 : 15) : 15;  // reg-season OT is 10:00
+  const clock = makeClock(panel.querySelector('[data-g="m"]'), panel.querySelector('[data-g="s"]'), st, maxM, clockEl);
+  panel.querySelector('.periods').addEventListener('click', e => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    st.p = btn.dataset.p;
+    panel.querySelectorAll('.periods button').forEach(x => x.classList.toggle('on', x === btn));
+    clockEl.classList.toggle('off', st.p === 'H');
+    const mx = maxM();
+    if (st.m > mx || (st.m === mx && st.s)) { st.m = mx; st.s = 0; clock.draw(true, 120); }
+  });
+  panel.querySelector('.setb').addEventListener('click', () => {
+    store.bm[id] = { p: st.p, m: st.m, s: st.s, ts: Date.now() };
+    saveBm(); closeDrop(); refreshActive();
+  });
+  panel.querySelector('.clr').addEventListener('click', () => {
+    if (had) { delete store.bm[id]; saveBm(); }
+    closeDrop(); refreshActive();
+  });
+  requestAnimationFrame(() => requestAnimationFrame(() => art.classList.add('open')));
+  setTimeout(() => {
+    const r = panel.getBoundingClientRect();
+    if (r.bottom > innerHeight - 10) window.scrollBy({ top: r.bottom - innerHeight + 24, behavior: 'smooth' });
+  }, 400);
+}
+function closeDrop() {
+  if (!openId) return;
+  const art = $list.querySelector(`.game[data-id="${CSS.escape(openId)}"]`);
+  openId = null;
+  if (art) {
+    art.classList.remove('open');
+    const host = art.querySelector('.drop-in');
+    setTimeout(() => { if (!art.classList.contains('open')) host.innerHTML = ''; }, 420);
+  }
+  if (pending) { pending = false; setTimeout(render, 420); }
+}
+
+/* ================= Events ================= */
+$list.addEventListener('change', e => {
+  const cb = e.target.closest('.watch input'); if (!cb) return;
+  const art = cb.closest('.game'), id = art.dataset.id;
+  if (cb.checked) store.watched[id] = 1; else delete store.watched[id];
+  saveWatched();
+  if (openId === id) closeDrop();
+  const n = frag(cardHTML(byId[id], activeId(), cb.checked ? 'reveal' : ''));
+  art.replaceWith(n);
+  fitNames(n);
+  refreshActive();
+});
+$list.addEventListener('click', e => {
+  const tag = e.target.closest('.bm-tag');
+  if (tag) { const art = tag.closest('.game'); openId === art.dataset.id ? closeDrop() : openDrop(art); return; }
+  if (e.target.closest('.retry')) start();
+});
+$prev.addEventListener('click', () => go(viewIdx - 1));
+$next.addEventListener('click', () => go(viewIdx + 1));
+$('#wt').addEventListener('click', () => go(currentWeekIdx()));
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') go(viewIdx - 1);
+  if (e.key === 'ArrowRight') go(viewIdx + 1);
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && data && Date.now() - data.ts > 10 * 60e3) refresh().then(render).catch(() => {});
+});
+
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => fitNames($list), 150); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitNames($list));
+
+/* ================= Startup ================= */
+function chooseStart() {
+  const a = activeId();
+  if (a && byId[a]) { viewIdx = WEEKS.findIndex(w => w.key === byId[a].wk); scrollTarget = a; }
+  else { viewIdx = currentWeekIdx(); scrollTarget = null; }
+}
+function scrollToTarget() {
+  if (!scrollTarget) return;
+  const el = $list.querySelector(`.game[data-id="${CSS.escape(scrollTarget)}"]`);
+  scrollTarget = null;
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+let splashDone = false;
+async function start() {
+  const hadData = !!data;
+  if (hadData) { index(); chooseStart(); }
+  render();
+  const fresh = refresh().then(() => {
+    if (!hadData) { chooseStart(); render(); if (splashDone) setTimeout(scrollToTarget, 300); }
+    else if (!openId) render();
+  }).catch(() => {
+    if (!data) $list.innerHTML = `<div class="empty">Couldn't reach the schedule.<br>Check your connection.<br><button class="retry">Try again</button></div>`;
+  });
+  if (!splashDone) {
+    await Promise.all([sleep(1800), hadData ? null : Promise.race([fresh, sleep(6000)])]);
+    splashDone = true;
+    $('#splash').classList.add('hide');
+    setTimeout(scrollToTarget, 550);
+  }
+}
+start();
+})();
+</script>
+</body>
+</html>
