@@ -682,7 +682,10 @@ function closeDrop() {
 $list.addEventListener('change', e => {
   const cb = e.target.closest('.watch input'); if (!cb) return;
   const art = cb.closest('.game'), id = art.dataset.id;
-  if (cb.checked) store.watched[id] = 1; else delete store.watched[id];
+  if (cb.checked) {
+    store.watched[id] = 1;
+    if (store.bm[id]) { delete store.bm[id]; saveBm(); }   // finished it — the resume time is no longer needed
+  } else delete store.watched[id];
   saveWatched();
   if (openId === id) closeDrop();
   const n = frag(cardHTML(byId[id], activeId(), cb.checked ? 'reveal' : ''));
