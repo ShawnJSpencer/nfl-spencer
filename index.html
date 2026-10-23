@@ -203,23 +203,30 @@ main{max-width:720px;margin:0 auto;padding:6px 14px calc(60px + env(safe-area-in
 .syncbtn.off i{background:#6b707b;box-shadow:none}
 .syncbtn.busy i{background:var(--gold);box-shadow:0 0 8px var(--gold);animation:breathe 1s ease-in-out infinite}
 .syncbtn.warn i{background:#f59e0b;box-shadow:0 0 8px #f59e0b}
-.sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;
+  padding:calc(env(safe-area-inset-top) + 24px) 12px 0;
   opacity:0;visibility:hidden;transition:opacity .25s, visibility .25s}
 .sheet.show{opacity:1;visibility:visible}
-.sheet-in{width:100%;max-width:520px;background:linear-gradient(180deg,#2c2f36,#1f2126);border-radius:22px 22px 0 0;border:1px solid rgba(255,255,255,.1);
-  padding:22px 18px calc(22px + env(safe-area-inset-bottom));transform:translateY(30px);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.sheet-in{width:100%;max-width:520px;background:linear-gradient(180deg,#2c2f36,#1f2126);border-radius:22px;border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 20px 50px rgba(0,0,0,.6);padding:22px 18px;transform:translateY(-20px);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
 .sheet.show .sheet-in{transform:none}
 .sheet h2{margin:0 0 8px;font-weight:900;font-style:italic;font-size:28px;letter-spacing:.04em;color:var(--gold)}
 .sheet p{margin:0 0 10px;color:#c9ccd3;font-size:17px;font-weight:600;line-height:1.3}
 #sheetState{color:#fff;font-weight:800}
-#tok{width:100%;margin-top:6px;padding:14px;border-radius:12px;border:1.5px solid rgba(255,255,255,.18);background:#111215;color:#fff;
+.pastebtn{width:100%;height:58px;margin-top:6px;border:0;border-radius:14px;background:linear-gradient(90deg,#ffd76a,#ffb000);color:#1b1c20;
+  font-weight:900;font-style:italic;font-size:22px;letter-spacing:.12em;display:flex;align-items:center;justify-content:center;gap:10px}
+.pastebtn svg{width:22px;height:22px}
+.orline{text-align:center;color:var(--muted);font-size:14px;font-weight:700;letter-spacing:.14em;margin:12px 0 2px}
+#tok{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;width:100%;margin-top:6px;padding:14px;border-radius:12px;border:1.5px solid rgba(255,255,255,.18);background:#111215;color:#fff;
   font:600 16px ui-monospace,Menlo,monospace}
 .tokmsg{min-height:22px;margin:10px 2px 4px;font-size:16px;font-weight:700;color:var(--muted)}
 .tokmsg.bad{color:#fca5a5}.tokmsg.good{color:#86efac}
 .sheet-acts{display:flex;gap:10px;margin-top:6px}
 .sheet-acts button{height:50px;border-radius:13px;font-weight:900;font-style:italic;letter-spacing:.12em;font-size:18px}
 .sheet-acts .ghost{flex:1;background:#17181c;color:#c9ccd3;border:1.5px solid rgba(255,255,255,.14)}
+.sheet-acts .ghost:only-child{flex:1}
 .sheet-acts .gold{flex:2;border:0;background:linear-gradient(90deg,#ffd76a,#ffb000);color:#1b1c20}
+[hidden]{display:none!important}
 .linkish{display:block;margin:14px auto 0;background:none;border:0;color:#9ea3ae;text-decoration:underline;font-size:15px;font-weight:700}
 .foot{text-align:center;color:#6b707b;font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-top:30px}
 </style>
@@ -256,7 +263,9 @@ main{max-width:720px;margin:0 auto;padding:6px 14px calc(60px + env(safe-area-in
   <div class="sheet-in">
     <h2>SYNC YOUR DEVICES</h2>
     <p id="sheetState">Sync is OFF for this device.</p>
-    <p>Paste your GitHub sync key below. You only do this once per device. After that, watched games and bookmarks match everywhere.</p>
+    <p>Copy your GitHub sync key (from Notes), then tap the button below. You only do this once per device.</p>
+    <button id="tokPaste" class="pastebtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/></svg>PASTE &amp; CONNECT</button>
+    <div class="orline">OR PASTE IT HERE</div>
     <input id="tok" type="text" placeholder="github_pat_…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div id="tokMsg" class="tokmsg"></div>
     <div class="sheet-acts"><button id="tokClose" class="ghost">CLOSE</button><button id="tokSave" class="gold">SAVE</button></div>
@@ -880,6 +889,15 @@ const closeSheet = () => $sheet.classList.remove('show');
 $('#syncBtn').addEventListener('click', openSheet);
 $('#tokClose').addEventListener('click', closeSheet);
 $sheet.addEventListener('click', e => { if (e.target === $sheet) closeSheet(); });
+$('#tokPaste').addEventListener('click', async () => {
+  let t = '';
+  try { t = (await navigator.clipboard.readText() || '').trim(); }
+  catch { $tokMsg.textContent = 'Couldn\'t read the clipboard. Tap "Paste" if your phone asks, or paste into the box below.'; $tokMsg.className = 'tokmsg bad'; return; }
+  const m = t.match(/(github_pat_[A-Za-z0-9_]+|gh[pousr]_[A-Za-z0-9]+)/);
+  if (!m) { $tokMsg.textContent = 'Your clipboard doesn\'t have a GitHub key in it. Copy the key (starts with github_pat_) and try again.'; $tokMsg.className = 'tokmsg bad'; return; }
+  $tok.value = m[1];
+  $('#tokSave').click();
+});
 $('#tokSave').addEventListener('click', async () => {
   const t = $tok.value.trim();
   if (!t) { $tokMsg.textContent = 'Paste your key first.'; $tokMsg.className = 'tokmsg bad'; return; }
