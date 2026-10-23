@@ -196,6 +196,31 @@ main{max-width:720px;margin:0 auto;padding:6px 14px calc(60px + env(safe-area-in
 .acts .setb{flex:2;background:linear-gradient(90deg,#ffd76a,#ffb000);color:#1b1c20;font-size:24px;box-shadow:0 6px 16px rgba(255,176,0,.3)}
 .acts button:active{transform:scale(.97)}
 
+.syncrow{display:flex;justify-content:center;margin-top:16px}
+.syncbtn{display:inline-flex;align-items:center;gap:9px;padding:9px 16px;border-radius:999px;border:1.5px solid rgba(255,255,255,.14);
+  background:var(--panel);color:#d7dae0;font-weight:800;font-style:italic;font-size:15px;letter-spacing:.1em;text-transform:uppercase}
+.syncbtn i{width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e}
+.syncbtn.off i{background:#6b707b;box-shadow:none}
+.syncbtn.busy i{background:var(--gold);box-shadow:0 0 8px var(--gold);animation:breathe 1s ease-in-out infinite}
+.syncbtn.warn i{background:#f59e0b;box-shadow:0 0 8px #f59e0b}
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;visibility:hidden;transition:opacity .25s, visibility .25s}
+.sheet.show{opacity:1;visibility:visible}
+.sheet-in{width:100%;max-width:520px;background:linear-gradient(180deg,#2c2f36,#1f2126);border-radius:22px 22px 0 0;border:1px solid rgba(255,255,255,.1);
+  padding:22px 18px calc(22px + env(safe-area-inset-bottom));transform:translateY(30px);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.sheet.show .sheet-in{transform:none}
+.sheet h2{margin:0 0 8px;font-weight:900;font-style:italic;font-size:28px;letter-spacing:.04em;color:var(--gold)}
+.sheet p{margin:0 0 10px;color:#c9ccd3;font-size:17px;font-weight:600;line-height:1.3}
+#sheetState{color:#fff;font-weight:800}
+#tok{width:100%;margin-top:6px;padding:14px;border-radius:12px;border:1.5px solid rgba(255,255,255,.18);background:#111215;color:#fff;
+  font:600 16px ui-monospace,Menlo,monospace}
+.tokmsg{min-height:22px;margin:10px 2px 4px;font-size:16px;font-weight:700;color:var(--muted)}
+.tokmsg.bad{color:#fca5a5}.tokmsg.good{color:#86efac}
+.sheet-acts{display:flex;gap:10px;margin-top:6px}
+.sheet-acts button{height:50px;border-radius:13px;font-weight:900;font-style:italic;letter-spacing:.12em;font-size:18px}
+.sheet-acts .ghost{flex:1;background:#17181c;color:#c9ccd3;border:1.5px solid rgba(255,255,255,.14)}
+.sheet-acts .gold{flex:2;border:0;background:linear-gradient(90deg,#ffd76a,#ffb000);color:#1b1c20}
+.linkish{display:block;margin:14px auto 0;background:none;border:0;color:#9ea3ae;text-decoration:underline;font-size:15px;font-weight:700}
 .foot{text-align:center;color:#6b707b;font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-top:30px}
 </style>
 </head>
@@ -224,7 +249,20 @@ main{max-width:720px;margin:0 auto;padding:6px 14px calc(60px + env(safe-area-in
 <main>
   <div id="list"></div>
   <div class="foot">Scores &amp; records stay hidden until you mark a game watched</div>
+  <div class="syncrow"><button id="syncBtn" class="syncbtn off"><i></i><span>Sync iPhone + iPad</span></button></div>
 </main>
+
+<div id="syncSheet" class="sheet" role="dialog" aria-label="Sync settings">
+  <div class="sheet-in">
+    <h2>SYNC YOUR DEVICES</h2>
+    <p id="sheetState">Sync is OFF for this device.</p>
+    <p>Paste your GitHub sync key below. You only do this once per device. After that, watched games and bookmarks match everywhere.</p>
+    <input id="tok" type="text" placeholder="github_pat_…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div id="tokMsg" class="tokmsg"></div>
+    <div class="sheet-acts"><button id="tokClose" class="ghost">CLOSE</button><button id="tokSave" class="gold">SAVE</button></div>
+    <button id="tokOff" class="linkish" hidden>Turn off sync on this device</button>
+  </div>
+</div>
 
 <script>
 (() => {
@@ -253,9 +291,28 @@ const LS = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
 const DATA_KEY = 'sfe.data.' + SEASON;
-const store = { watched: LS.get('sfe.watched', {}), bm: LS.get('sfe.bookmarks', {}) };
-const saveWatched = () => LS.set('sfe.watched', store.watched);
-const saveBm = () => LS.set('sfe.bookmarks', store.bm);
+const store = { watched: {}, bm: {} };
+// doc is the source of truth: every entry is [value, changedAt] so two devices can merge (newest change wins)
+let doc = LS.get('sfe.doc', null);
+if (!doc || !doc.w || !doc.b) {
+  doc = { w: {}, b: {} };
+  const ow = LS.get('sfe.watched', {}), ob = LS.get('sfe.bookmarks', {});
+  for (const id in ow) if (ow[id]) doc.w[id] = [1, 1];
+  for (const id in ob) doc.b[id] = [ob[id], 2];
+}
+LS.set('sfe.doc', doc);
+function derive() {
+  store.watched = {}; store.bm = {};
+  for (const id in doc.w) if (doc.w[id][0]) store.watched[id] = 1;
+  for (const id in doc.b) if (doc.b[id][0]) store.bm[id] = doc.b[id][0];
+}
+function commit(local) {
+  LS.set('sfe.doc', doc); derive();
+  if (local) Sync.soon();
+}
+function setWatched(id, on) { doc.w[id] = [on ? 1 : 0, Date.now()]; commit(true); }
+function setBm(id, v) { doc.b[id] = [v || null, Date.now()]; commit(true); }
+derive();
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
 
 let data = LS.get(DATA_KEY, null);   // { weeks: {key: [games]}, ts }
@@ -653,11 +710,11 @@ function openDrop(art) {
     if (st.m > mx || (st.m === mx && st.s)) { st.m = mx; st.s = 0; clock.draw(true, 120); }
   });
   panel.querySelector('.setb').addEventListener('click', () => {
-    store.bm[id] = { p: st.p, m: st.m, s: st.s, ts: Date.now() };
-    saveBm(); closeDrop(); refreshActive();
+    setBm(id, { p: st.p, m: st.m, s: st.s, ts: Date.now() });
+    closeDrop(); refreshActive();
   });
   panel.querySelector('.clr').addEventListener('click', () => {
-    if (had) { delete store.bm[id]; saveBm(); }
+    if (had) setBm(id, null);
     closeDrop(); refreshActive();
   });
   requestAnimationFrame(() => requestAnimationFrame(() => art.classList.add('open')));
@@ -682,11 +739,8 @@ function closeDrop() {
 $list.addEventListener('change', e => {
   const cb = e.target.closest('.watch input'); if (!cb) return;
   const art = cb.closest('.game'), id = art.dataset.id;
-  if (cb.checked) {
-    store.watched[id] = 1;
-    if (store.bm[id]) { delete store.bm[id]; saveBm(); }   // finished it — the resume time is no longer needed
-  } else delete store.watched[id];
-  saveWatched();
+  setWatched(id, cb.checked);
+  if (cb.checked && store.bm[id]) setBm(id, null);   // finished it — the resume time is no longer needed
   if (openId === id) closeDrop();
   const n = frag(cardHTML(byId[id], activeId(), cb.checked ? 'reveal' : ''));
   art.replaceWith(n);
@@ -716,11 +770,129 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') go(viewIdx + 1);
 });
 document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') Sync.run();
   if (document.visibilityState === 'visible' && data && Date.now() - data.ts > 10 * 60e3) refresh().then(render).catch(() => {});
 });
 
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => fitNames($list), 150); });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitNames($list));
+
+/* ================= Sync (GitHub) ================= */
+const Sync = (() => {
+  const GH = { owner: 'ShawnJSpencer', repo: 'nfl-spencer', branch: 'sync-data', path: 'sync.json' };
+  const API_URL = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.path}`;
+  let token = LS.get('sfe.ghtoken', '');
+  let busy = false, again = false, timer = null, status = token ? 'idle' : 'off', lastOk = 0, firstDone = false;
+  const hdr = () => ({ Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' });
+  const b64d = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
+  const b64e = s => { let x = ''; new TextEncoder().encode(s).forEach(c => x += String.fromCharCode(c)); return btoa(x); };
+  function merge(r) {
+    let changedLocal = false, needPush = false;
+    for (const k of ['w', 'b']) {
+      const L = doc[k], R = (r && r[k]) || {};
+      for (const id in R) if (Array.isArray(R[id]) && (!L[id] || R[id][1] > L[id][1])) { L[id] = R[id]; changedLocal = true; }
+      for (const id in L) if (!R[id] || L[id][1] > R[id][1]) needPush = true;
+    }
+    return { changedLocal, needPush };
+  }
+  async function pull() {
+    const r = await fetch(`${API_URL}?ref=${GH.branch}&_=${Date.now()}`, { headers: hdr(), cache: 'no-store' });
+    if (r.status === 404) return { data: { w: {}, b: {} }, sha: null };
+    if (!r.ok) throw new Error(String(r.status));
+    const j = await r.json();
+    let data = {}; try { data = JSON.parse(b64d(j.content || '') || '{}'); } catch {}
+    return { data, sha: j.sha };
+  }
+  async function push(sha) {
+    const body = { message: 'sync', content: b64e(JSON.stringify(doc)), branch: GH.branch };
+    if (sha) body.sha = sha;
+    const r = await fetch(API_URL, { method: 'PUT', headers: Object.assign(hdr(), { 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
+    if (r.status === 409 || r.status === 422) return false;        // someone else wrote first: pull, merge, retry
+    if (!r.ok) throw new Error(String(r.status));
+    return true;
+  }
+  async function run() {
+    if (!token || !navigator.onLine) { if (token) setStatus('error'); return; }
+    if (busy) { again = true; return; }
+    busy = true; clearTimeout(timer); setStatus('syncing');
+    const before = activeId();
+    try {
+      let ok = false;
+      for (let i = 0; i < 4 && !ok; i++) {
+        const { data, sha } = await pull();
+        const m = merge(data);
+        if (m.changedLocal) { commit(false); onRemote(before); }
+        ok = !m.needPush || await push(sha);
+      }
+      lastOk = Date.now(); setStatus('ok');
+    } catch (e) {
+      setStatus(['401', '403'].includes(e.message) ? 'badtoken' : 'error');
+    }
+    firstDone = true; busy = false;
+    if (again) { again = false; run(); }
+  }
+  function onRemote(before) {
+    if (!firstDone && activeId() !== before && data) {    // first sync brought in a newer "now watching" game
+      chooseStart(); go(viewIdx); setTimeout(scrollToTarget, 350);
+    } else if (!openId) render(); else pending = true;
+  }
+  function soon() { if (!token) return; clearTimeout(timer); timer = setTimeout(run, 1200); }
+  function ago() {
+    const s = Math.round((Date.now() - lastOk) / 1000);
+    return s < 20 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : 'a while ago';
+  }
+  function setStatus(s) { status = s; paint(); }
+  function paint() {
+    const b = document.getElementById('syncBtn'); if (!b) return;
+    const map = {
+      off: ['off', 'Sync iPhone + iPad'], idle: ['', 'Synced'], syncing: ['busy', 'Syncing…'],
+      ok: ['', 'Synced · ' + ago()], error: ['warn', 'Offline · will retry'], badtoken: ['warn', 'Sync key not working · tap to fix']
+    };
+    const [cls, txt] = map[status] || map.off;
+    b.className = 'syncbtn ' + cls; b.querySelector('span').textContent = txt;
+  }
+  async function check(t) {
+    const r = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}`, { headers: { Authorization: 'Bearer ' + t, Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    if (r.status === 401) return 'That key wasn\'t accepted by GitHub. Double-check you copied the whole thing.';
+    if (r.status === 404) return 'That key can\'t see the nfl-spencer repo. Make sure it has access to that repository.';
+    if (!r.ok) return 'GitHub said ' + r.status + '. Try again in a minute.';
+    const j = await r.json();
+    if (j.permissions && j.permissions.push === false) return 'That key is read-only. Set Contents to "Read and write".';
+    return '';
+  }
+  return {
+    get on() { return !!token; }, run, soon, paint, check,
+    setToken(t) { token = t; LS.set('sfe.ghtoken', t); status = t ? 'idle' : 'off'; paint(); if (t) run(); }
+  };
+})();
+setInterval(() => { if (document.visibilityState === 'visible') { Sync.run(); Sync.paint(); } }, 45000);
+addEventListener('online', () => Sync.run());
+
+/* ---------- Sync sheet ---------- */
+const $sheet = $('#syncSheet'), $tok = $('#tok'), $tokMsg = $('#tokMsg');
+function openSheet() {
+  $tok.value = ''; $tokMsg.textContent = ''; $tokMsg.className = 'tokmsg';
+  $('#tokOff').hidden = !Sync.on;
+  $('#sheetState').textContent = Sync.on ? 'Sync is ON for this device.' : 'Sync is OFF for this device.';
+  $sheet.classList.add('show');
+}
+const closeSheet = () => $sheet.classList.remove('show');
+$('#syncBtn').addEventListener('click', openSheet);
+$('#tokClose').addEventListener('click', closeSheet);
+$sheet.addEventListener('click', e => { if (e.target === $sheet) closeSheet(); });
+$('#tokSave').addEventListener('click', async () => {
+  const t = $tok.value.trim();
+  if (!t) { $tokMsg.textContent = 'Paste your key first.'; $tokMsg.className = 'tokmsg bad'; return; }
+  $tokMsg.textContent = 'Checking with GitHub…'; $tokMsg.className = 'tokmsg';
+  let err = '';
+  try { err = await Sync.check(t); } catch { err = 'Couldn\'t reach GitHub. Check your connection.'; }
+  if (err) { $tokMsg.textContent = err; $tokMsg.className = 'tokmsg bad'; return; }
+  Sync.setToken(t);
+  $tokMsg.textContent = '✓ Connected! This device will now stay in sync.'; $tokMsg.className = 'tokmsg good';
+  $('#tokOff').hidden = false; $('#sheetState').textContent = 'Sync is ON for this device.';
+  setTimeout(closeSheet, 1400);
+});
+$('#tokOff').addEventListener('click', () => { Sync.setToken(''); closeSheet(); });
 
 /* ================= Startup ================= */
 function chooseStart() {
@@ -753,6 +925,8 @@ async function start() {
   }
 }
 start();
+Sync.paint();
+Sync.run();
 })();
 </script>
 </body>
